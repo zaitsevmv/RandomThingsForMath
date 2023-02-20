@@ -22,16 +22,15 @@ private:
     QSpinBox* chooseNS;
 
     int operationId = 0;
-    QString firstNumLhs;
-    QString firstNumRhs;
-    QString currentNumLhs;
-    QString currentNumRhs;
+    QString firstNum;
+    QString currentNum;
     int firstNumNs = 16;
+    int firstNumDotPoint = 0;
+    int currentNumDotPoint = 0;
 
     bool hasDot = false;
-    int afterDotCount = 0;
 
-    QString ConvertFromOneToOther(QString inputLhs, QString inputRhs, int target);
+    QString ConvertFromOneToOther(QString input, int target);
     void UpdateButtons();
 
 private slots:
