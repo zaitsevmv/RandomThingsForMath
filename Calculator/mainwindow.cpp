@@ -98,9 +98,54 @@ MainWindow::MainWindow(QWidget *parent)
 
 QString MainWindow::ConvertFromOneToOther(QString input, int target)
 {
-    bool ok;
-    int normalNum = input.toInt(&ok, currentNS);
-    return QString::number(normalNum,target);
+    if(notConverted){
+        int a = 0;
+        QString lhs;
+        QVector<int> rhs;
+        while(input[a] != '.'){
+            lhs += input[a];
+            a++;
+        }
+        bool ok;
+        currentNumLhs = lhs.toInt(&ok, currentNS);
+        for(int i = a+1; i < input.size(); i++){
+            int num = input[i].unicode();
+            num -= 48;
+            if(num > 9){
+                num -= 7;
+            }
+            rhs.push_back(num);
+        }
+        double sumRhs;
+        for(int i = 1; i <= rhs.size(); i++){
+            sumRhs += rhs[i-1]/(std::pow(currentNS,i));
+            if(i == 5){
+                break;
+            }
+        }
+        currentNumRhs = sumRhs;
+        notConverted = false;
+    }
+    QString ans;
+    if(target != 10){
+        ans = QString::number(currentNumLhs,target);
+        if(currentNumRhs != 0){
+            ans += '.';
+            double rhs = currentNumRhs;
+            for(int i = 0; i < 3; i++){
+                double c = rhs * target;
+                int lhs = std::floor(c);
+                rhs = c - lhs;
+                ans += QString::number(lhs,target);
+            }
+        }
+        ans = ans.toUpper();
+        return ans;
+    }
+    double decNum = currentNumLhs + currentNumRhs;
+    ans = QString::number(decNum);
+    mainText->setText(ans);
+    return ans;
 }
 
 void MainWindow::UpdateButtons()
@@ -123,45 +168,27 @@ void MainWindow::UpdateButtons()
 void MainWindow::NumberInput()
 {
     QString inputBtn = qobject_cast<QPushButton*>(sender())->text();
-    if(mainText->text() == "0.0"){
-        mainText->clear();
+    if(mainText->text() == "0" && inputBtn != '.'){
+        ClearInput();
     }
-    if(mainText->text() == "0"){
-        mainText->clear();
-    }
-    if(inputBtn != "." && !hasDot){
-        QString topText = mainText->text() + inputBtn;
-        mainText->setText(topText);
-        currentNum += inputBtn;
-    } else if(inputBtn == "." && !hasDot){
-        QString topText = mainText->text() + inputBtn;
-        mainText->setText(topText);
-        hasDot = true;
-    } else if(inputBtn != "." && hasDot){
-        QString topText = mainText->text() + inputBtn;
-        mainText->setText(topText);
-        currentNum += inputBtn;
-    }
-    if(hasDot){
-        currentNumDotPoint++;
-    }
+    QString topText = mainText->text() + inputBtn;
+    mainText->setText(topText);
+    curText += inputBtn;
+    notConverted = true;
 }
 
 void MainWindow::InputNumS()
 {
-    QString output = ConvertFromOneToOther(currentNum, chooseNS->value());
+    QString cur = ConvertFromOneToOther(curText,chooseNS->value());
+    mainText->setText(cur);
     currentNS = chooseNS->value();
     UpdateButtons();
-    currentNum = output;
-    mainText->setText(output);
 }
 
 void MainWindow::ClearInput()
 {
-    UpdateButtons();
-    currentNum.clear();
-    hasDot = false;
-    currentNumDotPoint = 0;
+    notConverted = true;
+    curText.clear();
     mainText->clear();
 }
 
@@ -171,45 +198,35 @@ void MainWindow::ClearOneSimbol()
     if(num.size() != 0){
         num.resize(num.size()-1);
         mainText->setText(num);
-        if(hasDot){
-            if(currentNumDotPoint > 0){
-                currentNumDotPoint--;
-            } else{
-                hasDot = false;
-            }
-            currentNum.resize(currentNum.size()-1);
-            UpdateButtons();
-        } else{
-            currentNum.resize(currentNum.size()-1);
-        }
+        curText.resize(curText.size()-1);
+        notConverted = true;
     }
 }
 
-QString HaveAnswer(QString lhs, QString rhs, int opId)
+QString HaveAnswer(double lhs, double rhs, int opId)
 {
     qDebug() << lhs << " " << rhs;
-    QString ans;
-    bool ok;
+    double ans;
     switch (opId) {
     case 1:
-        ans = QString::number((lhs.toInt() + rhs.toInt()),10);
+        ans = lhs + rhs;
         break;
     case 2:
-        ans = QString::number((lhs.toInt() - rhs.toInt()),10);
+        ans = lhs - rhs;
         break;
     case 3:
-        ans = QString::number(lhs.toInt() * rhs.toInt(),10);
+        ans = lhs * rhs;
         break;
     case 4:
-        ans = QString::number(lhs.toInt() / rhs.toInt(),10);
+        ans = lhs / rhs;
         break;
     case 5:
-        ans = QString::number(std::pow(lhs.toInt(), rhs.toInt()));
+        ans = std::pow(lhs,rhs);
         break;
     default:
         break;
     }
-    return ans;
+    return QString::number(ans);
 }
 
 void MainWindow::DoSomething()
@@ -226,26 +243,32 @@ void MainWindow::DoSomething()
     } else if(inputBtn == "^"){
         operationId = 5;
     }
-    firstNum = currentNum;
-    firstNumDotPoint = currentNumDotPoint;
+    ConvertFromOneToOther(curText, currentNS);
+
+    firstNumLhs = currentNumLhs;
+    firstNumRhs = currentNumRhs;
     firstNumNs = currentNS;
 
+    currentNumLhs = 0;
+    currentNumRhs = 0;
+    notConverted = true;
     mainText->clear();
-    currentNum.clear();
-    hasDot = false;
-    currentNumDotPoint = 0;
+    curText.clear();
 }
 
 void MainWindow::ShowAnswer()
 {
-    QString lhs = ConvertFromOneToOther(firstNum, 10);
-    QString rhs = ConvertFromOneToOther(currentNum, 10);
-    QString ans = HaveAnswer(lhs, rhs, operationId);
-    operationId = 0;
-    currentNum = ans;
+    ConvertFromOneToOther(curText, currentNS);
+    curText = HaveAnswer(firstNumRhs + firstNumLhs, currentNumRhs + currentNumLhs, operationId);
+    int tempNS = currentNS;
     currentNS = 10;
-    chooseNS->setValue(10);
-    UpdateButtons();
-    mainText->setText(ans);
+    firstNumLhs = 0;
+    firstNumRhs = 0;
+    firstNumNs = 0;
+
+    notConverted = true;
+    qDebug() << curText << currentNS;
+    curText = ConvertFromOneToOther(curText, tempNS);
+    mainText->setText(curText);
 }
 

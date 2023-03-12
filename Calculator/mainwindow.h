@@ -18,17 +18,19 @@ private:
     QWidget* mainMenu;
     QVector<QPushButton*> allButtons;
     QLineEdit* mainText;
-    int currentNS = 16;
     QSpinBox* chooseNS;
 
     int operationId = 0;
-    QString firstNum;
-    QString currentNum;
-    int firstNumNs = 16;
-    int firstNumDotPoint = 0;
-    int currentNumDotPoint = 0;
 
-    bool hasDot = false;
+    int firstNumNs = 16;
+    int firstNumLhs = 0;
+    double firstNumRhs = 0;
+
+    int currentNS = 16;
+    int currentNumLhs = 0;
+    double currentNumRhs = 0;
+    bool notConverted = true;
+    QString curText;
 
     QString ConvertFromOneToOther(QString input, int target);
     void UpdateButtons();
